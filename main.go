@@ -31,11 +31,11 @@ var clientSecret string
 var callbackURL string
 var token string
 var mqttClient mqtt.Client
-var MQTT_BROKER_URL = envy.Get("MQTT_BROKER_URL", "mqtt://user1:password1@blynk.bstiot.com:1883")
+var mqttBrokerURL = envy.Get("MQTT_BROKER_URL", "mqtt://user1:password1@blynk.bstiot.com:1883")
 
 func main() {
 	mqttClientID := "9a49ea0e-b2b3-4aac-b2bd-35a0bc095a1b"
-	mqttURI, err := url.Parse(MQTT_BROKER_URL)
+	mqttURI, err := url.Parse(mqttBrokerURL)
 	if err != nil {
 		log.Panic(err)
 	} else {
