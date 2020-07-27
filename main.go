@@ -74,7 +74,9 @@ func notifyHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error(errx)
 	} else {
 		log.Println("result:", res)
-		token = res.AccessToken
+		if len(res.AccessToken) > 0 {
+			token = res.AccessToken
+		}
 	}
 	w.Write(byt)
 }
@@ -100,7 +102,9 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error(errx)
 	} else {
 		log.Println("result:", res)
-		token = res.AccessToken
+		if len(res.AccessToken) > 0 {
+			token = res.AccessToken
+		}
 	}
 	w.Write(byt)
 }
@@ -176,7 +180,9 @@ func mqttSubscribePLCPayload(topic string) {
 			log.Error(errx)
 		} else {
 			log.Println("result:", res)
-			token = res.AccessToken
+			if len(res.AccessToken) > 0 {
+				token = res.AccessToken
+			}
 		}
 	})
 }
