@@ -69,9 +69,13 @@ func notifyHandler(w http.ResponseWriter, r *http.Request) {
 	byt, err := apiCall("POST", apiNotify, data, token)
 	fmt.Println("ret:", string(byt), " err:", err)
 
-	res := newTokenResponse(byt)
-	fmt.Println("result:", res)
-	token = res.AccessToken
+	res, errx := newTokenResponse(byt)
+	if errx != nil {
+		log.Error(errx)
+	} else {
+		log.Println("result:", res)
+		token = res.AccessToken
+	}
 	w.Write(byt)
 }
 
@@ -91,9 +95,13 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	byt, err := apiCall("POST", apiToken, data, "")
 	fmt.Println("ret:", string(byt), " err:", err)
 
-	res := newTokenResponse(byt)
-	fmt.Println("result:", res)
-	token = res.AccessToken
+	res, errx := newTokenResponse(byt)
+	if errx != nil {
+		log.Error(errx)
+	} else {
+		log.Println("result:", res)
+		token = res.AccessToken
+	}
 	w.Write(byt)
 }
 func authHandler(w http.ResponseWriter, r *http.Request) {
@@ -163,8 +171,12 @@ func mqttSubscribePLCPayload(topic string) {
 		byt, err := apiCall("POST", apiNotify, data, token)
 		log.Println("ret:", string(byt), " err:", err)
 
-		res := newTokenResponse(byt)
-		log.Println("result:", res)
-		token = res.AccessToken
+		res, errx := newTokenResponse(byt)
+		if errx != nil {
+			log.Error(errx)
+		} else {
+			log.Println("result:", res)
+			token = res.AccessToken
+		}
 	})
 }
