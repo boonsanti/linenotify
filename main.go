@@ -14,20 +14,38 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"html/template"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/gobuffalo/envy"
+	log "github.com/sirupsen/logrus"
 )
 
 var clientID string
 var clientSecret string
 var callbackURL string
 var token string
+var mqttClient mqtt.Client
+var MQTT_BROKER_URL = envy.Get("MQTT_BROKER_URL", "mqtt://user1:password1@blynk.bstiot.com:1883")
 
 func main() {
+	mqttClientID := "9a49ea0e-b2b3-4aac-b2bd-35a0bc095a1b"
+	mqttURI, err := url.Parse(MQTT_BROKER_URL)
+	if err != nil {
+		log.Panic(err)
+	} else {
+		mqttClient, err = MQTTconnect(mqttClientID, mqttURI)
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+	go mqttSubscribePLCPayload("cmd/TEST1/Group1/1234")
+
 	http.HandleFunc("/callback", callbackHandler)
 	http.HandleFunc("/notify", notifyHandler)
 	http.HandleFunc("/auth", authHandler)
@@ -96,4 +114,57 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = t.Execute(w, noItems)
 	check(err)
+}
+
+func MQTTconnect(clientId string, uri *url.URL) (mqtt.Client, error) {
+	opts := MQTTcreateClientOptions(clientId, uri)
+	client := mqtt.NewClient(opts)
+	token := client.Connect()
+	for !token.WaitTimeout(3 * time.Second) {
+
+	}
+	if err := token.Error(); err != nil {
+		log.Fatal(err)
+		return client, err
+	}
+	log.Info("MQTT Connected.")
+	return client, nil
+}
+
+func MQTTcreateClientOptions(clientId string, uri *url.URL) *mqtt.ClientOptions {
+	opts := mqtt.NewClientOptions()
+	opts.AddBroker(fmt.Sprintf("tcp://%s", uri.Host))
+	opts.SetCleanSession(false)
+	opts.SetAutoReconnect(true)
+	if len(uri.User.Username()) > 0 {
+		opts.SetUsername(uri.User.Username())
+
+		password, ok := uri.User.Password()
+		if ok {
+			opts.SetPassword(password)
+		}
+	}
+	opts.SetClientID(clientId)
+	return opts
+}
+
+func mqttSubscribePLCPayload(topic string) {
+	log.Infof("MQTT subscribed topic '%s'.", topic)
+	mqttClient.Subscribe(topic, 1, func(client mqtt.Client, msg mqtt.Message) {
+		log.Infof("* [%s] %s\n", msg.Topic(), string(msg.Payload()))
+		// err := json.Unmarshal(msg.Payload(), &boxEvent)
+		// if err != nil {
+		// 	log.Error(err)
+		// 	return
+		// }
+		data := url.Values{}
+		data.Add("message", string(msg.Payload()))
+
+		byt, err := apiCall("POST", apiNotify, data, token)
+		log.Println("ret:", string(byt), " err:", err)
+
+		res := newTokenResponse(byt)
+		log.Println("result:", res)
+		token = res.AccessToken
+	})
 }
